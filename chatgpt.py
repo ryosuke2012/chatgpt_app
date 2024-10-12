@@ -1,16 +1,23 @@
 import os
+
 from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()  # .envファイルを読み込み
 client = OpenAI(api_key=os.getenv('API_KEY'))  #環境変数を取得
+
 # はじめの説明を表示
-print("AIアシスタントとチャットを始めます。チャットを終了させる場合はexit()と入力してください。")
+print("AIアシスタントとチャットを始めます。チャットを終了させる場合はexit()と入力してください。\n")
 
 # チャットのログを保存するリスト
 chat_log: list[dict] = []
 
-# todo AIに与える役割を入力
+# AIに与える役割を入力
+system_role = input("AIアシスタントに与える役割がある場合は入力してください。\n"
+                    "ない場合はそのままEnterキーを押してください。：")
+
+if system_role:
+    chat_log.append({"role":"system", "content":system_role})
 
 while True:
     prompt = input("あなた：")
