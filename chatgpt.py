@@ -1,6 +1,7 @@
 import os
 
 from dotenv import load_dotenv
+from httpx import stream
 from openai import OpenAI
 
 def chat_runner():
@@ -27,15 +28,23 @@ def chat_runner():
         chat_log.append({"role":"user", "content":prompt})
 
         # AIの応答を取得
-        response = client.chat.completions.create(model="gpt-4o-mini", messages=chat_log)
+        response = client.chat.completions.create(model="gpt-4o-mini", messages=chat_log, stream=True)
 
-        # AIの応答を表示
-        content = response.choices[0].message.content
-
-        # ロールを取得
-        role = response.choices[0].message.role
-
-        print(f"AIアシスタント: {content}")
+        print("AIアシスタント： ", end="")
+        content = []
+        role = ""
+        for chunk in response:
+            delta = chunk.choices[0].delta
+            content_chunk = delta.content if delta.content is not None else ""
+            role_chunk = delta.role
+            if role_chunk:
+                role = role_chunk
+            if content_chunk:
+                content.append(content_chunk)
+            print(content_chunk, end="")
+        else:
+            print()
+            content = "".join(content)
 
         chat_log.append({"role":role, "content":content})
 
