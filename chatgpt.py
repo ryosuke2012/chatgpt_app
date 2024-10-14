@@ -4,14 +4,14 @@ from dotenv import load_dotenv
 from httpx import stream
 from openai import OpenAI
 
-def chat_runner():
+def chat_runner(gpt_model: str):
     """"チャットを開始"""
 
     # チャットのログを保存するリスト
     chat_log: list[dict] = []
 
     # はじめの説明を表示
-    print("AIアシスタントとチャットを始めます。チャットを終了させる場合はexit()と入力してください。\n")
+    print("\nAIアシスタントとチャットを始めます。チャットを終了させる場合はexit()と入力してください。\n")
 
     # AIアシスタントに与える役割を入力
     system_role = input("AIアシスタントに与える役割がある場合は入力してください。\n"
@@ -31,7 +31,7 @@ def chat_runner():
 
         # AIの応答を取得
         # todoモデルを選択できる関数を実装
-        response = client.chat.completions.create(model="gpt-4o-mini",
+        response = client.chat.completions.create(model=gpt_model,
                                                   messages=chat_log,
                                                   stream=True)
 
@@ -85,11 +85,43 @@ def fetch_gpt_model_list() -> list[str]:
 
     return gpt_model_list
 
+def choice_model(gpt_model_list: list[str]) -> str:
+    """
+    チャットで使うモデルを選択させる
+    :param gpt_model_list: GPTモデルの一覧
+    :return: 選択したモデル名
+    """
+
+    default_model = "gpt-4o-mini"
+
+    # モデルの一覧を表示
+    print("AIとのチャットに使うモデルの番号を入力しEnterキーを押してください。")
+    for num, model in enumerate(gpt_model_list):
+        print(f"{num} : {model}")
+
+    while True:
+        input_number = input(f"何も入力しない場合は {default_model} を使います。：")
+
+        # 何も入力されなかった場合
+        if not input_number:
+            return default_model
+
+        # 数字じゃなかった場合
+        if not input_number.isdigit():
+            print("数字を入力してください。")
+
+        # モデル一覧の範囲外の数字だった場合
+        elif not int(input_number) in range(len(gpt_model_list)):
+            print("その番号は選択肢に存在しません。")
+
+        # 正常な入力だった場合
+        else:
+            return gpt_model_list[int(input_number)]
+
 load_dotenv()  # .envファイルを読み込み
 client = OpenAI(api_key=os.getenv('API_KEY'))
 
-# chat_runner()
-
-model_list = fetch_gpt_model_list()
-for model in model_list:
-    print(model)
+# チャットを開始
+gpt_models = fetch_gpt_model_list()
+choice = choice_model(gpt_models)
+chat_runner(choice)
