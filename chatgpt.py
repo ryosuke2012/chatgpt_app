@@ -4,11 +4,11 @@ from dotenv import load_dotenv
 from httpx import stream
 from openai import OpenAI
 
-def chat_runner(gpt_model: str):
-    """"チャットを開始"""
-
-    # チャットのログを保存するリスト
-    chat_log: list[dict] = []
+def give_role_to_system() -> str:
+    """
+    AIアシスタントに与える役割を入力させる
+    :return: AIアシスタントに与える役割
+    """
 
     # はじめの説明を表示
     print("\nAIアシスタントとチャットを始めます。チャットを終了させる場合はexit()と入力してください。\n")
@@ -17,7 +17,16 @@ def chat_runner(gpt_model: str):
     system_role = input("AIアシスタントに与える役割がある場合は入力してください。\n"
                         "ない場合はそのままEnterキーを押してください。：")
 
+    return system_role
+
+def chat_runner(gpt_model: str):
+    """"チャットを開始"""
+
+    # チャットのログを保存するリスト
+    chat_log: list[dict] = []
+
     # 役割がある場合はチャットログに追加
+    system_role = give_role_to_system()
     if system_role:
         chat_log.append({"role":"system", "content":system_role})
 
@@ -30,7 +39,6 @@ def chat_runner(gpt_model: str):
         chat_log.append({"role":"user", "content":prompt})
 
         # AIの応答を取得
-        # todoモデルを選択できる関数を実装
         response = client.chat.completions.create(model=gpt_model,
                                                   messages=chat_log,
                                                   stream=True)
