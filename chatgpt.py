@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from httpx import stream
 from openai import OpenAI
 
+DEFAULT_MODEL = "gpt-4o-mini"
+
 def give_role_to_system() -> str:
     """
     AIアシスタントに与える役割を入力させる
@@ -102,19 +104,17 @@ def choice_model(gpt_model_list: list[str]) -> str:
     :return: 選択したモデル名
     """
 
-    default_model = "gpt-4o-mini"
-
     # モデルの一覧を表示
     print("AIとのチャットに使うモデルの番号を入力しEnterキーを押してください。")
     for num, model in enumerate(gpt_model_list):
         print(f"{num} : {model}")
 
     while True:
-        input_number = input(f"何も入力しない場合は {default_model} を使います。：")
+        input_number = input(f"何も入力しない場合は {DEFAULT_MODEL} を使います。：")
 
         # 何も入力されなかった場合
         if not input_number:
-            return default_model
+            return DEFAULT_MODEL
 
         # 数字じゃなかった場合
         if not input_number.isdigit():
@@ -141,12 +141,38 @@ def get_initial_prompt(chat_log: list[dict]) -> str | None:
             initial_prompt = log["content"]
             return initial_prompt
 
+def generate_summary(initial_prompt: str, summary_length: int=10) -> str:
+    """
+    ユーザーの最初のプロンプトを要約する。
+    :param initial_prompt: ユーザーの最初のプロンプト
+    :param summary_length: 要約する文字数の上限
+    :return: 要約されたプロンプト
+    """
+
+    summary_request = {"role":"system",
+                       "content":"あなたはユーザーの依頼を要約する役割を担います。"
+                       f"以下のユーザーの依頼を必ず {summary_length} 文字以内で要約してください。"}
+
+    # GPTによる要約を取得
+    messages = [summary_request, {"role":"user", "content": initial_prompt}]
+    response = client.chat.completions.create(model=DEFAULT_MODEL,
+                                              messages=messages,
+                                              max_tokens=summary_length)
+    summary = response.choices[0].message.content
+    adjustment_summary = summary[:summary_length]
+    return adjustment_summary
+
 load_dotenv()  # .envファイルを読み込み
 client = OpenAI(api_key=os.getenv('API_KEY'))
 
 # チャットを開始
+# GPTモデルの一覧を取得
 gpt_models = fetch_gpt_model_list()
+# チャットで使うモデルを選択
 choice = choice_model(gpt_models)
+# チャットログを取得
 generate_log = generate_chat_log(choice)
+# ユーザーの最初のプロンプトを取得
 initial_user_prompt = get_initial_prompt(generate_log)
-print(initial_user_prompt)
+# ユーザーの最初のプロンプトを要約
+initial_user_summary = generate_summary(initial_user_prompt)
