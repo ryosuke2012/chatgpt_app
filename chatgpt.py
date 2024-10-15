@@ -4,7 +4,12 @@ from dotenv import load_dotenv
 from httpx import stream
 from openai import OpenAI
 
+EXIT_COMMAND = "exit()"
 DEFAULT_MODEL = "gpt-4o-mini"
+
+# .envファイルからAPIキーを取得
+load_dotenv()  # .envファイルを読み込み
+client = OpenAI(api_key=os.getenv('API_KEY'))
 
 def give_role_to_system() -> str:
     """
@@ -13,7 +18,7 @@ def give_role_to_system() -> str:
     """
 
     # はじめの説明を表示
-    print("\nAIアシスタントとチャットを始めます。チャットを終了させる場合はexit()と入力してください。\n")
+    print(f"\nAIアシスタントとチャットを始めます。チャットを終了させる場合は {EXIT_COMMAND} と入力してください。\n")
 
     # AIアシスタントに与える役割を入力
     system_role = input("AIアシスタントに与える役割がある場合は入力してください。\n"
@@ -34,7 +39,7 @@ def generate_chat_log(gpt_model: str) -> list[dict]:
 
     while True:
         prompt = input("\nあなた：")
-        if prompt == "exit()":
+        if prompt == EXIT_COMMAND:
             break
 
         # チャットログにユーザーの入力を追加
@@ -126,7 +131,8 @@ def choice_model(gpt_model_list: list[str]) -> str:
 
         # 正常な入力だった場合
         else:
-            return gpt_model_list[int(input_number)]
+            user_choice_model_name = gpt_model_list[int(input_number)]
+            return user_choice_model_name
 
 def get_initial_prompt(chat_log: list[dict]) -> str | None:
     """
@@ -162,17 +168,29 @@ def generate_summary(initial_prompt: str, summary_length: int=10) -> str:
     adjustment_summary = summary[:summary_length]
     return adjustment_summary
 
-load_dotenv()  # .envファイルを読み込み
-client = OpenAI(api_key=os.getenv('API_KEY'))
+def chat_runner() -> tuple[list[dict], str]:
+    """
+    チャットを開始し、チャットログとユーザーの最初のプロンプトを要約して返す。
+    :return: チャットログ、ユーザーの最初のプロンプトの要約
+    """
 
-# チャットを開始
-# GPTモデルの一覧を取得
-gpt_models = fetch_gpt_model_list()
-# チャットで使うモデルを選択
-choice = choice_model(gpt_models)
-# チャットログを取得
-generate_log = generate_chat_log(choice)
-# ユーザーの最初のプロンプトを取得
-initial_user_prompt = get_initial_prompt(generate_log)
-# ユーザーの最初のプロンプトを要約
-initial_user_summary = generate_summary(initial_user_prompt)
+    # チャットを開始
+    # GPTモデルの一覧を取得
+    gpt_models = fetch_gpt_model_list()
+    # チャットで使うモデルを選択
+    choice = choice_model(gpt_models)
+    # チャットログを取得
+    generate_log = generate_chat_log(choice)
+    # ユーザーの最初のプロンプトを取得
+    initial_user_prompt = get_initial_prompt(generate_log)
+
+    initial_prompt_summary = ""
+    if initial_user_prompt:
+        # ユーザーの最初のプロンプトを要約
+        initial_prompt_summary = generate_summary(initial_user_prompt)
+
+    return generate_log, initial_prompt_summary
+
+log, summary = chat_runner()
+print(log)
+print(summary)
