@@ -19,7 +19,7 @@ def give_role_to_system() -> str:
 
     return system_role
 
-def chat_runner(gpt_model: str):
+def generate_chat_log(gpt_model: str) -> list[dict]:
     """"チャットを開始"""
 
     # チャットのログを保存するリスト
@@ -36,7 +36,7 @@ def chat_runner(gpt_model: str):
             break
 
         # チャットログにユーザーの入力を追加
-        chat_log.append({"role":"user", "content":prompt})
+        chat_log.append({"role":"user", "content": prompt})
 
         # AIの応答を取得
         response = client.chat.completions.create(model=gpt_model,
@@ -48,6 +48,8 @@ def chat_runner(gpt_model: str):
 
         # チャットログにAIの応答を追加
         chat_log.append({"role": role, "content": content})
+
+    return chat_log
 
 def stream_and_concatenate_response(response) -> tuple[str, str]:
     """
@@ -126,10 +128,25 @@ def choice_model(gpt_model_list: list[str]) -> str:
         else:
             return gpt_model_list[int(input_number)]
 
+def get_initial_prompt(chat_log: list[dict]) -> str | None:
+    """
+    チャットの履歴からユーザーの最初のプロンプトを取得する。
+    :param chat_log: チャットの履歴
+    :return: ユーザーの最初のプロンプト
+    """
+
+    # ユーザーの最初のプロンプトを取得
+    for log in chat_log:
+        if log["role"] == "user":
+            initial_prompt = log["content"]
+            return initial_prompt
+
 load_dotenv()  # .envファイルを読み込み
 client = OpenAI(api_key=os.getenv('API_KEY'))
 
 # チャットを開始
 gpt_models = fetch_gpt_model_list()
 choice = choice_model(gpt_models)
-chat_runner(choice)
+generate_log = generate_chat_log(choice)
+initial_user_prompt = get_initial_prompt(generate_log)
+print(initial_user_prompt)
