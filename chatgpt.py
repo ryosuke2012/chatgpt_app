@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from httpx import stream
 from openai import OpenAI
+import output_excel
 
 EXIT_COMMAND = "exit()"
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -194,3 +195,9 @@ def chat_runner() -> tuple[list[dict], str]:
 log, summary = chat_runner()
 print(log)
 print(summary)
+
+is_excel_open = output_excel.is_output_open_excel()
+if not is_excel_open:
+    chat_runner()
+else:
+    print("Excelファイルが開かれているため、チャットを開始できませんでした。")
