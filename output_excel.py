@@ -30,23 +30,25 @@ def is_output_open_excel() -> bool:
             return bool(result.stdout)
         return False
 
-def load_or_create_workbook():
+def load_or_create_workbook() -> tuple[openpyxl.workbook, bool]:
     """
     Excelファイルを読み込むか、存在しない場合は作成する
-    :return: ワークブックオブジェクトと、ファイルが作成されたかどうかのフラグ
+    :returns: ワークブックオブジェクトと、ファイルが作成されたかどうかのフラグ
     """
 
     # ファイルの存在確認
     if excel_path.exists():
         # ファイルを読み込んで返す
-        pass
+        wb = openpyxl.load_workbook(excel_path)
+        return wb, False
     else:
         # ファイルを作成して返す
         wb = openpyxl.Workbook()
-        return wb
+        return wb, True
 
 is_output = is_output_open_excel()
-print(is_output)
+# print(is_output)
 
-workbook = load_or_create_workbook()
+workbook, is_created = load_or_create_workbook()
 workbook.save(excel_path)
+print(workbook.sheetnames)
