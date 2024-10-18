@@ -55,21 +55,36 @@ def create_worksheet(title: str, wb: openpyxl.Workbook, is_new: bool):
     :return: ワークシートオブジェクト
     """
 
+    # シート名に使えない文字を除去
+    trimmed_title = trim_invalid_chars(title)
+
     if is_new:
         # アクティブシート(Sheet)を取得
         ws = wb.active
-        ws.title = title
+        ws.title = trimmed_title
     else:
         # シートを追加
-        ws = wb.create_sheet(title=title)
+        ws = wb.create_sheet(title=trimmed_title)
         wb.move_sheet(ws, offset=-len(wb.worksheets)+1)
         wb.active = ws
     return ws
+
+def trim_invalid_chars(title: str) -> str:
+    """
+    シート名に使えない文字を除去する
+    :param title: シート名
+    :return: 除去後のシート名
+    """
+
+    invalid_chars = ["/", "\\", "?", "*", "[", "]"]
+    for char in invalid_chars:
+        title = title.replace(char,"")
+    return title
 
 is_output = is_output_open_excel()
 # print(is_output)
 
 workbook, is_created = load_or_create_workbook()
-worksheet = create_worksheet("test", workbook, is_created)
+worksheet = create_worksheet("test/\\?[]", workbook, is_created)
 workbook.save(excel_path)
 print(worksheet.title)
