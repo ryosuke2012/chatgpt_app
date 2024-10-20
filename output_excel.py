@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 import openpyxl
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Font, PatternFill, Alignment
 
 import openpyxl
 
@@ -118,11 +118,36 @@ def header_formatting(ws):
     ws.column_dimensions["A"].width = 22
     ws.column_dimensions["B"].width = 168
 
+def write_chat_log(ws, chat_log: list[dict]):
+    """
+    チャットの履歴を書き込み書式設定する
+    :param ws: 出力対象のワークシート
+    :param chat_log: チャットの履歴
+    """
+
+    for row_number, content in enumerate(chat_log, 3):
+        cell_role, cell_content = ws[f"A{row_number}"], ws[f"B{row_number}"]
+
+        # ロールと発言内容を書き込み
+        cell_role.value = content["role"]
+        cell_content.value = content["content"]
+
+        # セル内改行の調整
+        cell_content.alignment = Alignment(wrapText=True)
+
 is_output = is_output_open_excel()
 # print(is_output)
 
 workbook, is_created = load_or_create_workbook()
 worksheet = create_worksheet("test/\\?[]", workbook, is_created)
 header_formatting(worksheet)
+
+log = [
+    {"role": "user", "content": "こんにちは"},
+    {"role": "assistant", "content": "AIアシスタント"},
+    {"role": "user", "content": "元気ですか？"},
+    {"role": "assistant", "content": "はい、元気です。\nありがとうございます。\nおかげさまで"}
+]
+write_chat_log(worksheet, log)
 workbook.save(excel_path)
 print(worksheet.title)
