@@ -125,7 +125,9 @@ def write_chat_log(ws, chat_log: list[dict]):
     :param chat_log: チャットの履歴
     """
 
-    row_height_adjustment_standard = 15
+    row_height_adjustment_standard = 17
+    font_style = Font(name="メイリオ", size=10)
+    assistant_color = PatternFill(fill_type="solid", fgColor="d9d9d9")
 
     for row_number, content in enumerate(chat_log, 3):
         cell_role, cell_content = ws[f"A{row_number}"], ws[f"B{row_number}"]
@@ -140,6 +142,11 @@ def write_chat_log(ws, chat_log: list[dict]):
         # 行の高さを調整
         adjusted_row_height = len(content["content"].split("\n")) * row_height_adjustment_standard
         ws.row_dimensions[row_number].height = adjusted_row_height
+
+        # 書式設定
+        cell_role.font, cell_content.font = font_style, font_style
+        if content["role"] == "assistant":
+            cell_role.fill, cell_content.fill = assistant_color, assistant_color
 
 is_output = is_output_open_excel()
 # print(is_output)
