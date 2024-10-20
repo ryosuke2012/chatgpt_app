@@ -125,6 +125,8 @@ def write_chat_log(ws, chat_log: list[dict]):
     :param chat_log: チャットの履歴
     """
 
+    row_height_adjustment_standard = 15
+
     for row_number, content in enumerate(chat_log, 3):
         cell_role, cell_content = ws[f"A{row_number}"], ws[f"B{row_number}"]
 
@@ -134,6 +136,10 @@ def write_chat_log(ws, chat_log: list[dict]):
 
         # セル内改行の調整
         cell_content.alignment = Alignment(wrapText=True)
+
+        # 行の高さを調整
+        adjusted_row_height = len(content["content"].split("\n")) * row_height_adjustment_standard
+        ws.row_dimensions[row_number].height = adjusted_row_height
 
 is_output = is_output_open_excel()
 # print(is_output)
@@ -146,7 +152,7 @@ log = [
     {"role": "user", "content": "こんにちは"},
     {"role": "assistant", "content": "AIアシスタント"},
     {"role": "user", "content": "元気ですか？"},
-    {"role": "assistant", "content": "はい、元気です。\nありがとうございます。\nおかげさまで"}
+    {"role": "assistant", "content": "はい、元気です。ありがとうございます。おかげさまで"}
 ]
 write_chat_log(worksheet, log)
 workbook.save(excel_path)
