@@ -27,6 +27,20 @@ def give_role_to_system() -> str:
 
     return system_role
 
+def input_user_prompt() -> str:
+    """
+    ユーザーからの入力を受け付ける
+    :return: ユーザーのプロンプト
+    """
+
+    user_prompt = ""
+    while not user_prompt:
+        user_prompt = input("\nあなた；")
+        if not user_prompt:
+            print("プロンプトを入力してください。")
+
+    return user_prompt
+
 def generate_chat_log(gpt_model: str) -> list[dict]:
     """"チャットを開始"""
 
@@ -39,7 +53,7 @@ def generate_chat_log(gpt_model: str) -> list[dict]:
         chat_log.append({"role":"system", "content":system_role})
 
     while True:
-        prompt = input("\nあなた：")
+        prompt = input_user_prompt()
         if prompt == EXIT_COMMAND:
             break
 
@@ -182,6 +196,11 @@ def chat_runner() -> tuple[list[dict], str]:
     choice = choice_model(gpt_models)
     # チャットログを取得
     generate_log = generate_chat_log(choice)
+
+    # チャットログがからだったら終了
+    if not generate_log:
+        exit()
+
     # ユーザーの最初のプロンプトを取得
     initial_user_prompt = get_initial_prompt(generate_log)
 
@@ -201,3 +220,6 @@ if not is_excel_open:
     chat_runner()
 else:
     print("Excelファイルが開かれているため、チャットを開始できませんでした。")
+
+if __name__ == "__main__":
+    chat_runner()
