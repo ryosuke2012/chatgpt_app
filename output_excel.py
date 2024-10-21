@@ -163,9 +163,6 @@ def open_workbook():
     if os.name == "posix":
         os.system(f"open {excel_path}")
 
-# 下記の一行が必要かどうか確認
-is_output = is_output_open_excel()
-
 def output_excel(chat_log: list[dict], chat_summary: str):
     """
     chat_log.xlsxにチャットの履歴を書き込むためのエントリポイント。
@@ -183,10 +180,13 @@ def output_excel(chat_log: list[dict], chat_summary: str):
     open_workbook()
     print(worksheet.title)
 
-log = [
-    {"role": "user", "content": "こんにちは"},
-    {"role": "assistant", "content": "AIアシスタント"},
-    {"role": "user", "content": "元気ですか？"},
-    {"role": "assistant", "content": "はい、元気です。ありがとうございます。おかげさまで"}
-]
-output_excel(log, "test/\\?*[]")
+if __name__ == "__main__":
+    log = [
+        {"role": "user", "content": "こんにちは"},
+        {"role": "assistant", "content": "こんにちは"},
+        {"role": "user", "content": "元気ですか？"},
+        {"role": "assistant", "content": "1.元気\nです\nあり\nがと\nう\nござい\nます\nおかげ\nさまで\n元気です\nあなたは\n元気\nですか？"
+                                         "\n2. 元気\nです\nあり\nがと\nう\nござい\nます\nおかげ\nさまで\n元気です\nあなたは\n元気\nですか？"
+                                         "\n3. 元気\nです\nあり\nがと\nう\nござい\nます\nおかげ\nさまで\n元気です\nあなたは\n元気\nですか？"}
+    ]
+    output_excel(log, "test/\\?*[]")
