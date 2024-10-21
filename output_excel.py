@@ -6,8 +6,6 @@ from pathlib import Path
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 
-import openpyxl
-
 base_dir = Path(__file__).parent
 excel_path = base_dir / 'chat_log.xlsx'
 
@@ -50,11 +48,11 @@ def load_or_create_workbook() -> tuple[openpyxl.workbook, bool]:
         wb = openpyxl.Workbook()
         return wb, True
 
-def create_worksheet(title: str, wb: openpyxl.Workbook, is_new: bool):
+def create_worksheet(title: str, target_workbook: openpyxl.Workbook, is_new: bool):
     """
     シートを作成してシート名に使えない文字を除去したうえでシート名を変更して返す
     :param title: シート名(プロンプトの要約)
-    :param wb: 対象になるワークブックオブジェクト
+    :param target_workbook: 対象になるワークブックオブジェクト
     :param is_new: ワークブックが新規作成されたかどうかのフラグ
     :return: ワークシートオブジェクト
     """
@@ -64,14 +62,14 @@ def create_worksheet(title: str, wb: openpyxl.Workbook, is_new: bool):
 
     if is_new:
         # アクティブシート(Sheet)を取得
-        ws = wb.active
-        ws.title = trimmed_title
+        target_worksheet = target_workbook.active
+        target_worksheet.title = trimmed_title
     else:
         # シートを追加
-        ws = wb.create_sheet(title=trimmed_title)
-        wb.move_sheet(ws, offset=-len(wb.worksheets)+1)
-        wb.active = ws
-    return ws
+        target_worksheet = target_workbook.create_sheet(title=trimmed_title)
+        target_workbook.move_sheet(target_worksheet, offset=-len(target_workbook.worksheets) + 1)
+        target_workbook.active = target_worksheet
+    return target_worksheet
 
 def trim_invalid_chars(title: str) -> str:
     """
@@ -80,57 +78,63 @@ def trim_invalid_chars(title: str) -> str:
     :return: 除去後のシート名
     """
 
+    new_title = title
     invalid_chars = ["/", "\\", "?", "*", "[", "]"]
     for char in invalid_chars:
-        title = title.replace(char,"")
-    return title
+        new_title = new_title.replace(char,"")
+    return new_title
 
-def header_formatting(ws):
+def header_formatting(target_worksheet):
     """
     出力対象のワークシートにヘッダーを設定する
-    :param ws: 出力対処のワークシート
+    :param target_worksheet: 出力対処のワークシート
     """
 
     # A1セルに出力時の日時を書き込みフォントを設定
-    datetime_cell = ws["A1"]
+    datetime_cell = target_worksheet["A1"]
     datetime_cell.value = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
     datetime_cell.font = Font(name="メイリオ")
 
     # A2セルに「ロール」B2セルに「発言内容」と書き込み、フォントとセルの色を設定
-    role_header_cell = ws["A2"]
-    content_header_cell = ws["B2"]
+    role_header_cell = target_worksheet["A2"]
+    content_header_cell = target_worksheet["B2"]
 
     # セルに値を設定
     role_header_cell.value = "ロール"
     content_header_cell.value = "発言内容"
 
     # フォントを設定
-    header_font_style = Font(name="メイリオ", bold=True, color="FFFFFF")
+    white_color = "FFFFFF"
+    header_font_style = Font(name="メイリオ", bold=True, color=white_color)
     role_header_cell.font = header_font_style
     content_header_cell.font = header_font_style
 
     # セルの色を設定
-    header_color = PatternFill(fill_type="solid", fgColor="156B31")
+    excel_green = "156B31"
+    header_color = PatternFill(fill_type="solid", fgColor=excel_green)
     role_header_cell.fill = header_color
     content_header_cell.fill = header_color
 
     # セルの幅を調整
-    ws.column_dimensions["A"].width = 22
-    ws.column_dimensions["B"].width = 168
+    target_worksheet.column_dimensions["A"].width = 22
+    target_worksheet.column_dimensions["B"].width = 168
 
-def write_chat_log(ws, chat_log: list[dict]):
+def write_chat_log(target_worksheet, chat_log: list[dict]):
     """
     チャットの履歴を書き込み書式設定する
-    :param ws: 出力対象のワークシート
+    :param target_worksheet: 出力対象のワークシート
     :param chat_log: チャットの履歴
     """
 
     row_height_adjustment_standard = 17
     font_style = Font(name="メイリオ", size=10)
-    assistant_color = PatternFill(fill_type="solid", fgColor="d9d9d9")
+    light_gray = "d9d9d9"
+    assistant_color = PatternFill(fill_type="solid", fgColor=light_gray)
 
-    for row_number, content in enumerate(chat_log, 3):
-        cell_role, cell_content = ws[f"A{row_number}"], ws[f"B{row_number}"]
+    # チャット内容の書き込み
+    write_start_row = 3
+    for row_number, content in enumerate(chat_log, write_start_row):
+        cell_role, cell_content = target_worksheet[f"A{row_number}"], target_worksheet[f"B{row_number}"]
 
         # ロールと発言内容を書き込み
         cell_role.value = content["role"]
@@ -141,19 +145,43 @@ def write_chat_log(ws, chat_log: list[dict]):
 
         # 行の高さを調整
         adjusted_row_height = len(content["content"].split("\n")) * row_height_adjustment_standard
-        ws.row_dimensions[row_number].height = adjusted_row_height
+        target_worksheet.row_dimensions[row_number].height = adjusted_row_height
 
         # 書式設定
         cell_role.font, cell_content.font = font_style, font_style
         if content["role"] == "assistant":
             cell_role.fill, cell_content.fill = assistant_color, assistant_color
 
-is_output = is_output_open_excel()
-# print(is_output)
+def open_workbook():
+    """Excelファイルを開く"""
 
-workbook, is_created = load_or_create_workbook()
-worksheet = create_worksheet("test/\\?[]", workbook, is_created)
-header_formatting(worksheet)
+    # Windows
+    if os.name == "nt":
+        os.system(f"start {excel_path}")
+
+    # Mac
+    if os.name == "posix":
+        os.system(f"open {excel_path}")
+
+# 下記の一行が必要かどうか確認
+is_output = is_output_open_excel()
+
+def output_excel(chat_log: list[dict], chat_summary: str):
+    """
+    chat_log.xlsxにチャットの履歴を書き込むためのエントリポイント。
+    :param chat_log: チャットの履歴
+    :param chat_summary: チャットの要約
+    :return:
+    """
+
+    workbook, is_created = load_or_create_workbook()
+    worksheet = create_worksheet(title=chat_summary, target_workbook=workbook, is_new=is_created)
+    header_formatting(target_worksheet=worksheet)
+    write_chat_log(target_worksheet=worksheet, chat_log=chat_log)
+    workbook.save(excel_path)
+    workbook.close()
+    open_workbook()
+    print(worksheet.title)
 
 log = [
     {"role": "user", "content": "こんにちは"},
@@ -161,6 +189,4 @@ log = [
     {"role": "user", "content": "元気ですか？"},
     {"role": "assistant", "content": "はい、元気です。ありがとうございます。おかげさまで"}
 ]
-write_chat_log(worksheet, log)
-workbook.save(excel_path)
-print(worksheet.title)
+output_excel(log, "test/\\?*[]")
