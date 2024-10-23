@@ -1,9 +1,9 @@
 import os
 
 import openai
-from dotenv import load_dotenv
 from openai import OpenAI
-import output_excel
+from colorama import Fore
+from dotenv import load_dotenv
 
 EXIT_COMMAND = "exit()"
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -11,6 +11,7 @@ DEFAULT_MODEL = "gpt-4o-mini"
 # .envファイルからAPIキーを取得
 load_dotenv()  # .envファイルを読み込み
 client = OpenAI(api_key=os.getenv('API_KEY'))
+
 
 def give_role_to_system() -> str:
     """
@@ -27,22 +28,28 @@ def give_role_to_system() -> str:
 
     return system_role
 
+
 def input_user_prompt() -> str:
     """
-    ユーザーからの入力を受け付ける
+    ユーザーのプロンプトを入力させる
     :return: ユーザーのプロンプト
     """
 
     user_prompt = ""
     while not user_prompt:
-        user_prompt = input("\nあなた；")
+        user_prompt = input(f"{Fore.CYAN}\nあなた：{Fore.RESET}")
         if not user_prompt:
             print("プロンプトを入力してください。")
 
     return user_prompt
 
+
 def generate_chat_log(gpt_model: str) -> list[dict]:
-    """"チャットを開始"""
+    """
+    チャットを開始して、チャットログを返す
+    :param gpt_model: GPTモデルの名前
+    :return: チャットログ
+    """
 
     # チャットのログを保存するリスト
     chat_log: list[dict] = []
@@ -73,6 +80,7 @@ def generate_chat_log(gpt_model: str) -> list[dict]:
 
     return chat_log
 
+
 def stream_and_concatenate_response(response) -> tuple[str, str]:
     """
     AIの応答をストリーミングで取得したものをチャンクで表示し、結合して返す
@@ -80,7 +88,7 @@ def stream_and_concatenate_response(response) -> tuple[str, str]:
     :return: AIの応答の文字列、AIの応答の役割
     """
 
-    print("\nAIアシスタント： ", end="")
+    print(f"{Fore.GREEN}\nAIアシスタント： {Fore.RESET}", end="")
     content_list: list[str] = []
     role = ""
     for chunk in response:
@@ -97,6 +105,16 @@ def stream_and_concatenate_response(response) -> tuple[str, str]:
 
     return role, content
 
+
+def print_error_message(message: str):
+    """
+    エラーメッセージを表示する
+    :param message: エラーメッセージ
+    """
+
+    print(f"{Fore.RED}{message}{Fore.RESET}")
+
+
 def fetch_gpt_model_list() -> list[str] | None:
     """
     GPTモデルの一覧を取得
@@ -107,16 +125,16 @@ def fetch_gpt_model_list() -> list[str] | None:
     try:
         all_model_list = client.models.list()
     except openai.InternalServerError:
-        print("OpenAI側でエラーが発生しています。少し待ってから再度試してください。")
+        print_error_message("OpenAI側でエラーが発生しています。少し待ってから再度試してください。")
         print("サービス稼働状況はhttps://status.openai.comで確認できます。")
     except openai.AuthenticationError:
-        print("APIキーが正しく設定されていません。")
+        print_error_message("APIキーが正しく設定されていません。")
     except openai.APITimeoutError:
-        print("APIのタイムアウトが発生しました。しばらくしてから再度実行してください。")
+        print_error_message("APIのタイムアウトが発生しました。しばらくしてから再度実行してください。")
     except openai.RateLimitError:
-        print("APIのレート制限に達しました。")
+        print_error_message("APIのレート制限に達しました。")
     except openai.APIError:
-        print("エラーが発生しました。")
+        print_error_message("エラーが発生しました。")
     else:
         # GPTモデルのみ抽出する
         gpt_model_list = []
@@ -128,6 +146,7 @@ def fetch_gpt_model_list() -> list[str] | None:
         gpt_model_list.sort()
 
         return gpt_model_list
+
 
 def choice_model(gpt_model_list: list[str]) -> str:
     """
@@ -150,16 +169,17 @@ def choice_model(gpt_model_list: list[str]) -> str:
 
         # 数字じゃなかった場合
         if not input_number.isdigit():
-            print("数字を入力してください。")
+            print_error_message("数字を入力してください。")
 
         # モデル一覧の範囲外の数字だった場合
         elif not int(input_number) in range(len(gpt_model_list)):
-            print("その番号は選択肢に存在しません。")
+            print_error_message("その番号は選択肢に存在しません。")
 
         # 正常な入力だった場合
         else:
             user_choice_model_name = gpt_model_list[int(input_number)]
             return user_choice_model_name
+
 
 def get_initial_prompt(chat_log: list[dict]) -> str | None:
     """
@@ -173,6 +193,7 @@ def get_initial_prompt(chat_log: list[dict]) -> str | None:
         if log["role"] == "user":
             initial_prompt = log["content"]
             return initial_prompt
+
 
 def generate_summary(initial_prompt: str, summary_length: int=10) -> str:
     """
@@ -195,6 +216,7 @@ def generate_summary(initial_prompt: str, summary_length: int=10) -> str:
     adjustment_summary = summary[:summary_length]
     return adjustment_summary
 
+
 def chat_runner() -> tuple[list[dict], str]:
     """
     チャットを開始し、チャットログとユーザーの最初のプロンプトを要約して返す。
@@ -207,12 +229,12 @@ def chat_runner() -> tuple[list[dict], str]:
     # モデル一覧が取得できなかったら終了
     if not gpt_models:
         exit()
+
     # チャットで使うモデルを選択
     choice = choice_model(gpt_models)
     # チャットログを取得
     generate_log = generate_chat_log(choice)
-
-    # チャットログがからだったら終了
+    # チャットログが空だったら終了
     if not generate_log:
         exit()
 
@@ -226,15 +248,6 @@ def chat_runner() -> tuple[list[dict], str]:
 
     return generate_log, initial_prompt_summary
 
-log, summary = chat_runner()
-print(log)
-print(summary)
-
-is_excel_open = output_excel.is_output_open_excel()
-if not is_excel_open:
-    chat_runner()
-else:
-    print("Excelファイルが開かれているため、チャットを開始できませんでした。")
 
 if __name__ == "__main__":
     chat_runner()

@@ -9,6 +9,7 @@ from openpyxl.styles import Font, PatternFill, Alignment
 base_dir = Path(__file__).parent
 excel_path = base_dir / 'chat_log.xlsx'
 
+
 def is_output_open_excel() -> bool:
     """
     Excelファイルが開かれているかどうかを判定する
@@ -20,10 +21,10 @@ def is_output_open_excel() -> bool:
         try:
             with excel_path,open("r+b"):
                 return False
-        except PermissionError:
-            return True
         except FileNotFoundError:
             return False
+        except PermissionError:
+            return True
 
     # Mac
     if os.name == "posix":
@@ -31,6 +32,7 @@ def is_output_open_excel() -> bool:
             result = subprocess.run(["lsof", excel_path], stdout=subprocess.PIPE)
             return bool(result.stdout)
         return False
+
 
 def load_or_create_workbook() -> tuple[openpyxl.workbook, bool]:
     """
@@ -47,6 +49,7 @@ def load_or_create_workbook() -> tuple[openpyxl.workbook, bool]:
         # ファイルを作成して返す
         wb = openpyxl.Workbook()
         return wb, True
+
 
 def create_worksheet(title: str, target_workbook: openpyxl.Workbook, is_new: bool):
     """
@@ -71,6 +74,7 @@ def create_worksheet(title: str, target_workbook: openpyxl.Workbook, is_new: boo
         target_workbook.active = target_worksheet
     return target_worksheet
 
+
 def trim_invalid_chars(title: str) -> str:
     """
     シート名に使えない文字を除去する
@@ -83,6 +87,7 @@ def trim_invalid_chars(title: str) -> str:
     for char in invalid_chars:
         new_title = new_title.replace(char,"")
     return new_title
+
 
 def header_formatting(target_worksheet):
     """
@@ -119,6 +124,7 @@ def header_formatting(target_worksheet):
     target_worksheet.column_dimensions["A"].width = 22
     target_worksheet.column_dimensions["B"].width = 168
 
+
 def write_chat_log(target_worksheet, chat_log: list[dict]):
     """
     チャットの履歴を書き込み書式設定する
@@ -152,6 +158,7 @@ def write_chat_log(target_worksheet, chat_log: list[dict]):
         if content["role"] == "assistant":
             cell_role.fill, cell_content.fill = assistant_color, assistant_color
 
+
 def open_workbook():
     """Excelファイルを開く"""
 
@@ -162,6 +169,7 @@ def open_workbook():
     # Mac
     if os.name == "posix":
         os.system(f"open {excel_path}")
+
 
 def output_excel(chat_log: list[dict], chat_summary: str):
     """
@@ -178,7 +186,6 @@ def output_excel(chat_log: list[dict], chat_summary: str):
     workbook.save(excel_path)
     workbook.close()
     open_workbook()
-    print(worksheet.title)
 
 if __name__ == "__main__":
     log = [
