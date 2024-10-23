@@ -1,7 +1,7 @@
 import os
 
+import openai
 from dotenv import load_dotenv
-from httpx import stream
 from openai import OpenAI
 import output_excel
 
@@ -97,25 +97,37 @@ def stream_and_concatenate_response(response) -> tuple[str, str]:
 
     return role, content
 
-def fetch_gpt_model_list() -> list[str]:
+def fetch_gpt_model_list() -> list[str] | None:
     """
     GPTモデルの一覧を取得
     :return: GPTモデルの一覧
     """
 
     # モデルの一覧の取得
-    all_model_list = client.models.list()
+    try:
+        all_model_list = client.models.list()
+    except openai.InternalServerError:
+        print("OpenAI側でエラーが発生しています。少し待ってから再度試してください。")
+        print("サービス稼働状況はhttps://status.openai.comで確認できます。")
+    except openai.AuthenticationError:
+        print("APIキーが正しく設定されていません。")
+    except openai.APITimeoutError:
+        print("APIのタイムアウトが発生しました。しばらくしてから再度実行してください。")
+    except openai.RateLimitError:
+        print("APIのレート制限に達しました。")
+    except openai.APIError:
+        print("エラーが発生しました。")
+    else:
+        # GPTモデルのみ抽出する
+        gpt_model_list = []
+        for model in all_model_list:
+            if "gpt" in model.id:
+                gpt_model_list.append(model.id)
 
-    # GPTモデルのみ抽出する
-    gpt_model_list = []
-    for model in all_model_list:
-        if "gpt" in model.id:
-            gpt_model_list.append(model.id)
+        # モデル名でソート
+        gpt_model_list.sort()
 
-    # モデル名でソート
-    gpt_model_list.sort()
-
-    return gpt_model_list
+        return gpt_model_list
 
 def choice_model(gpt_model_list: list[str]) -> str:
     """
@@ -192,6 +204,9 @@ def chat_runner() -> tuple[list[dict], str]:
     # チャットを開始
     # GPTモデルの一覧を取得
     gpt_models = fetch_gpt_model_list()
+    # モデル一覧が取得できなかったら終了
+    if not gpt_models:
+        exit()
     # チャットで使うモデルを選択
     choice = choice_model(gpt_models)
     # チャットログを取得
